@@ -1,0 +1,665 @@
+*&---------------------------------------------------------------------*
+*& Report  ZHU_ST_LOCATION
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT zhu_st_location.
+
+*vekp, vepo
+TABLES: zconf_other, afpo, mara,
+        zcard_furn_data, makt, zafru, z_vepo_vekp.
+
+
+
+TYPES: BEGIN OF st_table,
+         mandt               TYPE zconf_other-mandt,
+         aufnr               TYPE zconf_other-aufnr,
+         rueck               TYPE zconf_other-rueck,
+         rmzhl               TYPE zconf_other-rmzhl,
+         zhu                 TYPE zconf_other-zhu,
+         zwagon_no           TYPE zconf_other-zwagon_no,
+         zcard_no            TYPE zconf_other-zcard_no,
+         zhu_mf              TYPE zconf_other-zhu_mf,
+         zhu_col             TYPE zconf_other-zhu_col,
+         zhu_scrap           TYPE zconf_other-zhu_scrap,
+         pc_mf_scrap         TYPE zconf_other-pc_mf_scrap,
+         usnam               TYPE zconf_other-usnam,
+         uzeit               TYPE zconf_other-uzeit,
+         personel_g          TYPE zconf_other-personel_g,
+         pak_material        TYPE zconf_other-pak_material,
+         isbz                TYPE zconf_other-isbz,
+         iebz                TYPE zconf_other-iebz,
+         logrp               TYPE zconf_other-logrp,
+         i_pernr             TYPE zconf_other-i_pernr,
+         pc_col_scrap        TYPE zconf_other-pc_col_scrap,
+         i_name              TYPE zconf_other-i_name,
+         i_surname           TYPE zconf_other-i_surname,
+         i_pernr2            TYPE zconf_other-i_pernr2,
+         i_name2             TYPE zconf_other-i_name2,
+         i_surname2          TYPE zconf_other-i_surname2,
+         i_type_of_operation TYPE zconf_other-i_type_of_operation,
+         i_zcust_pack_no     TYPE zconf_other-i_zcust_pack_no,
+         zextr_vel           TYPE zconf_other-zextr_vel,
+         zgross_w            TYPE zconf_other-zgross_w,
+         znet_w              TYPE zconf_other-znet_w,
+         pcs_ok              TYPE zconf_other-pcs_ok,
+         datum               TYPE zconf_other-datum,
+         i_anzma             TYPE zconf_other-i_anzma,
+         isbd                TYPE zconf_other-isbd,
+         iebd                TYPE zconf_other-iebd,
+         iserh               TYPE zconf_other-iserh,
+         i_breaks            TYPE zconf_other-i_breaks,
+         anzma               TYPE zconf_other-anzma,
+
+
+         matnr               TYPE afpo-matnr,
+         pwerk               TYPE afpo-pwerk,
+
+
+         zprnum              TYPE mara-zprnum,
+         zalloy              TYPE mara-zalloy,
+         ztemper             TYPE mara-ztemper,
+         zlength             TYPE mara-zlength,
+         spart               TYPE mara-spart,
+         prdha               TYPE mara-prdha,
+
+
+         vpobjkey            TYPE z_vepo_vekp-vpobjkey,
+         vstel               TYPE z_vepo_vekp-vstel,
+         lgort               TYPE z_vepo_vekp-lgort,
+         venum               TYPE z_vepo_vekp-venum,
+
+
+         posnr               TYPE z_vepo_vekp-posnr,
+         vbeln               TYPE z_vepo_vekp-vbeln,
+
+
+         batch               TYPE zcard_furn_data-batch,
+
+
+         spras               TYPE makt-spras,
+         maktx               TYPE makt-maktx,
+
+
+*         aufnr               TYPE zafru-aufnr,
+*         rueck               TYPE zafru-rueck,
+*         rmzhl               TYPE zafru-rmzhl,
+
+
+
+       END OF st_table.
+
+
+
+DATA: it_table              TYPE TABLE OF st_table,
+      wa_table              TYPE st_table.
+
+DATA: t_fieldcat            TYPE slis_t_fieldcat_alv WITH HEADER LINE.
+
+DATA: w_callback_subroutine TYPE slis_formname,
+      w_callback_program    LIKE sy-repid,
+      gd_layout             TYPE slis_layout_alv.
+
+
+
+SELECTION-SCREEN: BEGIN OF BLOCK b1 WITH FRAME TITLE text-001.
+
+SELECT-OPTIONS:
+
+      s_aufnr  FOR zconf_other-aufnr,
+      s_zhu    FOR zconf_other-zhu,
+      s_card_n FOR zconf_other-zcard_no,
+      s_pack_n FOR zconf_other-i_zcust_pack_no,
+      s_datum  FOR zconf_other-datum,
+
+      s_matnr  FOR afpo-matnr,
+
+      s_spart  FOR mara-spart,
+      s_prdha  FOR mara-prdha,
+      s_vstel  FOR z_vepo_vekp-vstel,
+      s_lgort  FOR z_vepo_vekp-lgort,
+      s_batch  FOR zcard_furn_data-batch,
+      s_posnr  FOR z_vepo_vekp-posnr.
+
+
+SELECTION-SCREEN: END OF BLOCK b1.
+
+
+
+START-OF-SELECTION.
+
+  PERFORM output_data.
+  PERFORM build_catalog.
+  PERFORM display_data.
+
+END-OF-SELECTION.
+
+
+
+*&---------------------------------------------------------------------*
+*&      Form  DISPLAY_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM display_data .
+
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+    EXPORTING
+*     I_INTERFACE_CHECK       = ' '
+*     I_BYPASSING_BUFFER      = ' '
+*     I_BUFFER_ACTIVE         = ' '
+      i_callback_program      = sy-cprog
+*     I_CALLBACK_PF_STATUS_SET          = ' '
+      i_callback_user_command = w_callback_subroutine
+*     I_CALLBACK_TOP_OF_PAGE  = ' '
+*     I_CALLBACK_HTML_TOP_OF_PAGE       = ' '
+*     I_CALLBACK_HTML_END_OF_LIST       = ' '
+*     I_STRUCTURE_NAME        =
+*     I_BACKGROUND_ID         = ' '
+*     I_GRID_TITLE            =
+*     I_GRID_SETTINGS         =
+      is_layout               = gd_layout
+      it_fieldcat             = t_fieldcat[]
+*     IT_EXCLUDING            =
+*     IT_SPECIAL_GROUPS       =
+*     IT_SORT                 =
+*     IT_FILTER               =
+*     IS_SEL_HIDE             =
+     I_DEFAULT               = 'X'
+     I_SAVE                  = 'A'
+*     IS_VARIANT              =
+*     IT_EVENTS               =
+*     IT_EVENT_EXIT           =
+*     IS_PRINT                =
+*     IS_REPREP_ID            =
+*     I_SCREEN_START_COLUMN   = 0
+*     I_SCREEN_START_LINE     = 0
+*     I_SCREEN_END_COLUMN     = 0
+*     I_SCREEN_END_LINE       = 0
+*     I_HTML_HEIGHT_TOP       = 0
+*     I_HTML_HEIGHT_END       = 0
+*     IT_ALV_GRAPHICS         =
+*     IT_HYPERLINK            =
+*     IT_ADD_FIELDCAT         =
+*     IT_EXCEPT_QINFO         =
+*     IR_SALV_FULLSCREEN_ADAPTER        =
+*   IMPORTING
+*     E_EXIT_CAUSED_BY_CALLER =
+*     ES_EXIT_CAUSED_BY_USER  =
+    TABLES
+      t_outtab                = it_table
+    EXCEPTIONS
+      program_error           = 1
+      OTHERS                  = 2.
+  IF sy-subrc <> 0.
+* Implement suitable error handling here
+  ENDIF.
+
+ENDFORM.
+
+
+
+*&---------------------------------------------------------------------*
+*&      Form  OUTPUT_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM output_data .
+
+  SELECT
+         zconf_other~mandt,
+         zconf_other~aufnr,
+         zconf_other~rueck,
+         zconf_other~rmzhl,
+         zconf_other~zhu,
+         zconf_other~zwagon_no,
+         zconf_other~zcard_no,
+         zconf_other~zhu_mf,
+         zconf_other~zhu_col,
+         zconf_other~zhu_scrap,
+         zconf_other~pc_mf_scrap,
+         zconf_other~usnam,
+         zconf_other~uzeit,
+         zconf_other~personel_g,
+         zconf_other~pak_material,
+         zconf_other~isbz,
+         zconf_other~iebz,
+         zconf_other~logrp,
+         zconf_other~i_pernr,
+         zconf_other~pc_col_scrap,
+         zconf_other~i_name,
+         zconf_other~i_surname,
+         zconf_other~i_pernr2,
+         zconf_other~i_name2,
+         zconf_other~i_surname2,
+         zconf_other~i_type_of_operation,
+         zconf_other~i_zcust_pack_no,
+         zconf_other~zextr_vel,
+         zconf_other~zgross_w,
+         zconf_other~znet_w,
+         zconf_other~pcs_ok,
+         zconf_other~datum,
+         zconf_other~i_anzma,
+         zconf_other~isbd,
+         zconf_other~iebd,
+         zconf_other~iserh,
+         zconf_other~i_breaks,
+         zconf_other~anzma,
+
+
+         afpo~matnr,
+         afpo~pwerk,
+
+
+         mara~zprnum,
+         mara~zalloy,
+         mara~ztemper,
+         mara~zlength,
+         mara~spart,
+         mara~prdha,
+
+
+         z_vepo_vekp~vpobjkey,
+         z_vepo_vekp~vstel,
+         z_vepo_vekp~lgort,
+         z_vepo_vekp~venum,
+
+
+         z_vepo_vekp~posnr,
+         z_vepo_vekp~vbeln,
+
+
+         zcard_furn_data~batch,
+
+
+         makt~spras,
+         makt~maktx
+
+
+
+         INTO TABLE @it_table  FROM zconf_other           AS zconf_other
+
+                               LEFT JOIN afpo             AS afpo             ON zconf_other~aufnr    = afpo~aufnr
+                               LEFT JOIN mara             AS mara             ON afpo~matnr           = mara~matnr
+                               LEFT JOIN z_vepo_vekp      AS z_vepo_vekp      ON zconf_other~zhu      = z_vepo_vekp~exidv
+                               LEFT JOIN zcard_furn_data  AS zcard_furn_data  ON zconf_other~zcard_no = zcard_furn_data~zcard_no
+                               INNER JOIN zafru           AS zafru            ON zconf_other~aufnr    = zafru~aufnr AND
+                                                                                 zconf_other~rueck    = zafru~rueck AND
+                                                                                 zconf_other~rmzhl    = zafru~rmzhl
+                               LEFT JOIN makt             AS makt             ON mara~matnr           = makt~matnr
+
+                                                                              WHERE zconf_other~aufnr           IN @s_aufnr   AND
+                                                                                    afpo~matnr                  IN @s_matnr   AND
+                                                                                    zconf_other~zhu             IN @s_zhu     AND
+                                                                                    zconf_other~zcard_no        IN @s_card_n  AND
+                                                                                    zconf_other~datum           IN @s_datum   AND
+                                                                                    zconf_other~i_zcust_pack_no IN @s_pack_n  AND
+                                                                                    mara~spart                  IN @s_spart   AND
+                                                                                    mara~prdha                  IN @s_prdha   AND
+                                                                                    z_vepo_vekp~vstel           IN @s_vstel   AND
+                                                                                    z_vepo_vekp~lgort           IN @s_lgort   AND
+                                                                                    zcard_furn_data~batch       IN @s_batch   AND
+                                                                                    z_vepo_vekp~posnr           IN @s_posnr   AND
+                                                                                    makt~spras                  EQ 'EN'       .
+
+
+
+ENDFORM .
+
+
+
+*&---------------------------------------------------------------------*
+*&      Form  BUILD_CATALOG
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM build_catalog .
+
+  t_fieldcat-fieldname = 'MANDT'.
+  t_fieldcat-seltext_m = 'Client'.
+  t_fieldcat-col_pos = 1.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'AUFNR'.
+  t_fieldcat-seltext_m = 'Order'.
+  t_fieldcat-col_pos = 2.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'RUECK'.
+  t_fieldcat-seltext_m = 'Confirmation'.
+  t_fieldcat-col_pos = 3.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'RMZHL'.
+  t_fieldcat-seltext_m = 'Counter'.
+  t_fieldcat-lzero = 'X'.
+  t_fieldcat-col_pos = 4.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ZHU'.
+  t_fieldcat-seltext_m = 'Handling Unit'.
+  t_fieldcat-col_pos = 5.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ZWAGON_NO'.
+  t_fieldcat-seltext_m = 'WAGON NO'.
+  t_fieldcat-col_pos = 6.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ZCARD_NO'.
+  t_fieldcat-seltext_m = 'CARD NO'.
+  t_fieldcat-lzero = 'X'.
+  t_fieldcat-col_pos = 7.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ZHU_MF'.
+  t_fieldcat-seltext_m = 'Handling Unit'.
+  t_fieldcat-col_pos = 8.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ZHU_COL'.
+  t_fieldcat-seltext_m = 'Handling Unit'.
+  t_fieldcat-col_pos = 9.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ZHU_SCRAP'.
+  t_fieldcat-seltext_m = 'Handling Unit'.
+  t_fieldcat-col_pos = 10.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'PC_MF_SCRAP'.
+  t_fieldcat-seltext_m = 'Scrap in Pieces'.
+  t_fieldcat-lzero = 'X'.
+  t_fieldcat-col_pos = 11.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'USNAM'.
+  t_fieldcat-seltext_m = 'User name'.
+  t_fieldcat-col_pos = 12.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'UZEIT'.
+  t_fieldcat-seltext_m = 'Time'.
+  t_fieldcat-col_pos = 13.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'PERSONEL_G'.
+  t_fieldcat-seltext_m = 'Shift Group'.
+  t_fieldcat-col_pos = 14.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'PAK_MATERIAL'.
+  t_fieldcat-seltext_m = 'Material'.
+  t_fieldcat-no_zero = 'X'.
+  t_fieldcat-col_pos = 15.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ISBZ'.
+  t_fieldcat-seltext_m = 'Proc. start'.
+  t_fieldcat-outputlen = '8'.
+  t_fieldcat-col_pos = 16.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'IEBZ'.
+  t_fieldcat-seltext_m = 'Time act.finish'.
+  t_fieldcat-outputlen = '10'.
+  t_fieldcat-col_pos = 17.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'LOGRP'.
+  t_fieldcat-seltext_m = 'Wage group'.
+  t_fieldcat-col_pos = 18.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'I_PERNR'.
+  t_fieldcat-seltext_m = 'Personnel no.'.
+  t_fieldcat-col_pos = 19.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'PC_COL_SCRAP'.
+  t_fieldcat-seltext_m = 'Scrap in Pieces'.
+  t_fieldcat-lzero = 'X'.
+  t_fieldcat-col_pos = 20.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'I_NAME'.
+  t_fieldcat-seltext_m = 'First name'.
+  t_fieldcat-col_pos = 21.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'I_SURNAME'.
+  t_fieldcat-seltext_m = 'Last name'.
+  t_fieldcat-col_pos = 22.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'I_PERNR2'.
+  t_fieldcat-seltext_m = 'Personnel no.'.
+  t_fieldcat-col_pos = 23.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'I_NAME2'.
+  t_fieldcat-seltext_m = 'First name'.
+  t_fieldcat-col_pos = 24.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'I_SURNAME2'.
+  t_fieldcat-seltext_m = 'Last name'.
+  t_fieldcat-col_pos = 25.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'I_TYPE_OF_OPERATION'.
+  t_fieldcat-seltext_m = 'Type of Operation'.
+  t_fieldcat-col_pos = 26.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'I_ZCUST_PACK_NO'.
+  t_fieldcat-seltext_m = 'Customer Package No'.
+  t_fieldcat-col_pos = 27.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ZEXTR_VEL'.
+  t_fieldcat-seltext_m = 'Extrusion velocity'.
+  t_fieldcat-col_pos = 28.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ZGROSS_W'.
+  t_fieldcat-seltext_m = 'Gross Weight'.
+  t_fieldcat-col_pos = 29.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ZNET_W'.
+  t_fieldcat-seltext_m = 'Confirmation Net Wei'.
+  t_fieldcat-outputlen = '15'.
+  t_fieldcat-col_pos = 30.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'PCS_OK'.
+  t_fieldcat-seltext_m = 'PC'.
+  t_fieldcat-col_pos = 31.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'DATUM'.
+  t_fieldcat-seltext_m = 'Date'.
+  t_fieldcat-col_pos = 32.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'I_ANZMA'.
+  t_fieldcat-seltext_m = 'No. employees'.
+  t_fieldcat-col_pos = 33.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ISBD'.
+  t_fieldcat-seltext_m = 'Proc. start'.
+  t_fieldcat-col_pos = 34.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'IEBD'.
+  t_fieldcat-seltext_m = 'Act.finish date'.
+  t_fieldcat-col_pos = 35.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ISERH'.
+  t_fieldcat-seltext_m = 'Break time'.
+  t_fieldcat-col_pos = 36.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'I_BREAKS'.
+  t_fieldcat-seltext_m = 'Break time'.
+  t_fieldcat-col_pos = 37.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ANZMA'.
+  t_fieldcat-seltext_m = 'No. employees'.
+  t_fieldcat-col_pos = 38.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'MATNR'.
+  t_fieldcat-seltext_m = 'Material Number'.
+  t_fieldcat-no_zero = 'X'.
+  t_fieldcat-col_pos = 39.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'MAKTX'.
+  t_fieldcat-seltext_m = 'Material description'.
+  t_fieldcat-outputlen = '35'.
+  t_fieldcat-col_pos = 40.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ZPRNUM'.
+  t_fieldcat-seltext_m = 'Profil Number'.
+  t_fieldcat-col_pos = 41.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ZALLOY'.
+  t_fieldcat-seltext_m = 'Alloy'.
+  t_fieldcat-col_pos = 42.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ZTEMPER'.
+  t_fieldcat-seltext_m = 'Temper'.
+  t_fieldcat-col_pos = 43.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'ZLENGTH'.
+  t_fieldcat-seltext_m = 'Length'.
+  t_fieldcat-col_pos = 44.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'SPART'.
+  t_fieldcat-seltext_m = 'Division'.
+  t_fieldcat-col_pos = 45.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'PRDHA'.
+  t_fieldcat-seltext_m = 'Prod.hierarchy'.
+  t_fieldcat-outputlen = '20'.
+  t_fieldcat-col_pos = 46.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'VPOBJKEY'.
+  t_fieldcat-seltext_m = 'Object'.
+  t_fieldcat-col_pos = 47.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'VSTEL'.
+  t_fieldcat-seltext_m = 'Shipping Point'.
+  t_fieldcat-col_pos = 48.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'LGORT'.
+  t_fieldcat-seltext_m = 'Stor. Location'.
+  t_fieldcat-col_pos = 49.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'VENUM'.
+  t_fieldcat-seltext_m = 'Internal HU no.'.
+  t_fieldcat-col_pos = 50.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'BATCH'.
+  t_fieldcat-seltext_m = 'Furn Lot Number'.
+  t_fieldcat-outputlen = '15'.
+  t_fieldcat-col_pos = 51.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'VBELN'.
+  t_fieldcat-seltext_m = 'Delivery'.
+  t_fieldcat-col_pos = 52.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'POSNR'.
+  t_fieldcat-seltext_m = 'Delivery Item'.
+  t_fieldcat-col_pos = 53.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+  t_fieldcat-fieldname = 'PWERK'.
+  t_fieldcat-seltext_m = 'Planning plant'.
+  t_fieldcat-col_pos = 54.
+  APPEND t_fieldcat TO t_fieldcat.
+  CLEAR t_fieldcat.
+
+ENDFORM.
